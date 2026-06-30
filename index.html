@@ -43,6 +43,17 @@
             margin-top: 5px;
         }
 
+        .badge-free {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #000;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 10px;
+            -webkit-text-fill-color: #000;
+        }
+
         .card {
             background: rgba(255,255,255,0.06);
             backdrop-filter: blur(10px);
@@ -104,16 +115,6 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #43e97b, #38f9d7);
-            color: white;
-        }
-
-        .btn-success:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(67,233,123,0.4);
         }
 
         .sites {
@@ -350,16 +351,6 @@
             text-decoration: none;
         }
 
-        .badge-free {
-            background: linear-gradient(135deg, #43e97b, #38f9d7);
-            color: #000;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            margin-left: 10px;
-        }
-
         @media (max-width: 600px) {
             .header h1 { font-size: 28px; }
             .card { padding: 20px; }
@@ -457,12 +448,11 @@
     </div>
 
     <script>
-        // Configuration - Replace with your Cloudflare Worker URL
-        const WORKER_URL = 'https://video-downloader.workers.dev';
+        // ✅ IMPORTANT: अपना सही Worker URL यहाँ डालें
+        const WORKER_URL = 'https://finally-video-downloder.k9891p.workers.dev';
         
         let currentVideoId = null;
         let currentVideoUrl = null;
-        let videoTitle = '';
 
         function showAlert(message, type) {
             const alert = document.getElementById('alert');
@@ -530,30 +520,33 @@
             setLoading(true, 'Fetching video info...');
 
             try {
-                // Get video info from Cloudflare Worker
+                console.log('Calling Worker:', WORKER_URL);
+                console.log('Video URL:', url);
+
                 const response = await fetch(`${WORKER_URL}/api/info`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: url })
                 });
 
+                console.log('Response status:', response.status);
+
                 if (!response.ok) {
-                    throw new Error('Failed to fetch video info');
+                    const errorText = await response.text();
+                    console.log('Error response:', errorText);
+                    throw new Error(`Server error: ${response.status}`);
                 }
 
                 const data = await response.json();
-                videoTitle = data.title || 'Video';
+                console.log('Video info:', data);
 
-                // Show video section
                 document.getElementById('videoSection').style.display = 'block';
                 document.getElementById('searchCard').style.display = 'none';
 
-                // Update info
                 document.getElementById('videoTitle').textContent = data.title || 'Video';
                 document.getElementById('videoMeta').textContent = 
                     `${data.uploader || 'Unknown'} • ${data.views ? Number(data.views).toLocaleString() : '0'} views`;
 
-                // Load video
                 const embedUrl = getEmbedUrl(videoId, platform);
                 if (embedUrl) {
                     document.getElementById('videoFrame').src = embedUrl;
@@ -564,7 +557,7 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                showAlert('Failed to load video. Please try again.', 'error');
+                showAlert('Failed to load video. Please try again. Error: ' + error.message, 'error');
                 setLoading(false);
             }
         }
@@ -594,7 +587,6 @@
                 const data = await response.json();
                 
                 if (data.url) {
-                    // Open download in new tab
                     window.open(data.url, '_blank');
                     showAlert(`✅ Download started for ${quality}`, 'success');
                 } else {
@@ -687,7 +679,6 @@
             document.getElementById('videoFrame').src = '';
         }
 
-        // Menu toggle
         document.getElementById('menuToggle').addEventListener('click', function(e) {
             e.stopPropagation();
             document.getElementById('menuDropdown').classList.toggle('show');
@@ -697,14 +688,12 @@
             document.getElementById('menuDropdown').classList.remove('show');
         });
 
-        // Event listeners
         document.getElementById('fetchBtn').addEventListener('click', loadVideo);
         document.getElementById('backBtn').addEventListener('click', goBack);
         document.getElementById('urlInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') loadVideo();
         });
 
-        // Welcome message
         window.addEventListener('load', () => {
             setTimeout(() => {
                 showAlert('✨ Paste a video URL and click "Load Video"!', 'info');
